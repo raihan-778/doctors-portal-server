@@ -10,6 +10,13 @@ require("dotenv").config();
 app.use(cors());
 app.use(express.json());
 
+/* 
+auth info
+
+"doctorsPortal"
+"KsdFHtqDql5WHPKR"
+ */
+
 //mongodb connection
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.jz1qjld.mongodb.net/?retryWrites=true&w=majority`;
@@ -25,6 +32,7 @@ async function run() {
       .db("doctorsPortal")
       .collection("appointmentOption");
     const bookingCollection = client.db("doctorsPortal").collection("bookings");
+    const usersCollection = client.db("doctorsPortal").collection("users");
     // const query = {};
     // const cursor = await doctorsAppointmentCollection.find(query).toArray();
     // console.log(cursor);
@@ -57,6 +65,16 @@ async function run() {
 
       res.send(options);
     }); //use this api or below v2 api. both are smae
+    //get api for bookings for single person
+
+    app.get("/bookings", async (req, res) => {
+      const email = req.query.email;
+      const query = {
+        email: email,
+      };
+      const bookings = await bookingCollection.find(query).toArray();
+      res.send(bookings);
+    });
 
     //create api using version control
 
@@ -121,6 +139,13 @@ async function run() {
         return res.send({ acknowledged: false, message });
       }
       const result = await bookingCollection.insertOne(booking);
+      res.send(result);
+    });
+
+    //post api for collecting user info
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const result = await usersCollection.insertOne(user);
       res.send(result);
     });
   } finally {

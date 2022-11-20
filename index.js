@@ -163,6 +163,17 @@ async function run() {
       res.send(result);
     });
 
+    //get api for specific 1 or 2 field using .project method
+
+    app.get("/appointmentSpeciality", async (req, res) => {
+      const query = {};
+      const result = await doctorsAppointmentCollection
+        .find(query)
+        .project({ name: 1 }) // here name in .project is used to filter out only the name field
+        .toArray();
+      res.send(result);
+    });
+
     //get api for geting user info
 
     app.get("/users", async (req, res) => {

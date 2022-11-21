@@ -51,9 +51,20 @@ async function run() {
     const bookingCollection = client.db("doctorsPortal").collection("bookings");
     const usersCollection = client.db("doctorsPortal").collection("users");
     const doctorsCollection = client.db("doctorsPortal").collection("doctors");
-    // const query = {};
-    // const cursor = await doctorsAppointmentCollection.find(query).toArray();
-    // console.log(cursor);
+
+    //midleware for verify admin to avoiding code repet
+
+    // Note: make sure that you will run verifyAdmin function after verify JWT Function
+
+    const verifyAdmin = async (req, res, next) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "admin") {
+        return res.status(403).send("forbidden Access");
+      }
+      next();
+    };
 
     //Use aggrigate to query multiple collection and then merge data (it is not best practice we have to try advanced system later)
     app.get("/appointmentOptions", async (req, res) => {
@@ -126,6 +137,7 @@ async function run() {
             $project: {
               name: 1,
               slots: 1,
+              price: 1,
               booked: {
                 $map: {
                   input: "$booked",
@@ -138,6 +150,7 @@ async function run() {
           {
             $project: {
               name: 1,
+              price: 1,
               slots: {
                 $setDifference: ["$slots", "$booked"],
               },
@@ -194,13 +207,7 @@ async function run() {
 
     //api for admin role to update user info
 
-    app.put("/users/admin/:id", verifyJWT, async (req, res) => {
-      const decodedEmail = req.decoded.email;
-      const query = { email: decodedEmail };
-      const user = await usersCollection.findOne(query);
-      if (user?.role !== "admin") {
-        return res.status(403).send("forbidden Access");
-      }
+    app.put("/users/admin/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
       const options = { upsert: true };
@@ -216,6 +223,26 @@ async function run() {
       );
       res.send(result);
     });
+
+    //Temporaty price field update option in doctorsAppointmentCollection. Please don't use it in production level.
+
+    /*  app.get("/updatePrice", async (req, res) => {
+      const filter = {};
+      const options = {
+        upsert: true,
+      };
+      const updatedDoc = {
+        $set: {
+          price: 99,
+        },
+      };
+      const result = await doctorsAppointmentCollection.updateMany(
+        filter,
+        updatedDoc,
+        options
+      );
+      res.send(result);
+    }); */
 
     //post api for collecting user info
     app.post("/users", async (req, res) => {
@@ -242,15 +269,22 @@ async function run() {
 
     //get api for manage doctors collection
 
-    app.get("/doctors", async (req, res) => {
+    app.get("/doctors", verifyJWT, verifyAdmin, async (req, res) => {
       const query = {};
       const result = await doctorsCollection.find(query).toArray();
       res.send(result);
     });
 
+    app.delete("/doctors/:id", verifyJWT, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await doctorsCollection.deleteOne(filter);
+      res.send(result);
+    });
+
     //post api for doctors Collection
 
-    app.post("/doctors", async (req, res) => {
+    app.post("/doctors", verifyJWT, verifyAdmin, async (req, res) => {
       const doctor = req.body;
       const result = await doctorsCollection.insertOne(doctor);
       res.send(result);

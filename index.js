@@ -50,6 +50,7 @@ async function run() {
       .collection("appointmentOption");
     const bookingCollection = client.db("doctorsPortal").collection("bookings");
     const usersCollection = client.db("doctorsPortal").collection("users");
+    const doctorsCollection = client.db("doctorsPortal").collection("doctors");
     // const query = {};
     // const cursor = await doctorsAppointmentCollection.find(query).toArray();
     // console.log(cursor);
@@ -237,6 +238,22 @@ async function run() {
       }
       console.log(user);
       res.status(403).send({ accessToken: "unauthorised User" });
+    });
+
+    //get api for manage doctors collection
+
+    app.get("/doctors", async (req, res) => {
+      const query = {};
+      const result = await doctorsCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    //post api for doctors Collection
+
+    app.post("/doctors", async (req, res) => {
+      const doctor = req.body;
+      const result = await doctorsCollection.insertOne(doctor);
+      res.send(result);
     });
   } finally {
   }

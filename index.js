@@ -177,6 +177,15 @@ async function run() {
       res.send(result);
     });
 
+    //api for getting booking infor by id
+
+    app.get("/booking/:id", async (req, res) => {
+      const id = req.params.id;
+      const booking = { _id: ObjectId(id) };
+      const result = await bookingCollection.findOne(booking);
+      res.send(result);
+    });
+
     //get api for specific 1 or 2 field using .project method
 
     app.get("/appointmentSpeciality", async (req, res) => {
